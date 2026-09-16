@@ -25,7 +25,8 @@ jobs:
           DATABASE_URL: sqlite+pysqlite:///./test.db
           JWT_SECRET: ci-secret-key-production-testing
           SEED_DEMO_USERS: "true"
-        run: pytest -v
+          PYTHONPATH: .
+        run: python -m pytest tests -v
 
   ml:
     runs-on: ubuntu-latest
