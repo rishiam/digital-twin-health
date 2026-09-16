@@ -1,0 +1,64 @@
+{
+  "cbc": {
+    "model": "GradientBoostingRegressor",
+    "mae": 0.0011,
+    "r2": 0.9994,
+    "targets": [
+      "anemia_risk",
+      "infection_risk",
+      "bleeding_risk",
+      "inflammation_score"
+    ]
+  },
+  "ecg": {
+    "model": "1D CNN + BiLSTM surrogate (Tree/Forest Classifier)",
+    "accuracy": 0.98,
+    "classes": [
+      "Normal Rhythm",
+      "Bradycardia",
+      "Tachycardia",
+      "Atrial Fibrillation",
+      "QT Prolongation",
+      "ST Elevation",
+      "ST Depression"
+    ]
+  },
+  "risk_ensemble": {
+    "models": {
+      "random_forest": {
+        "mae": 0.0217
+      }
+    },
+    "features": [
+      "age",
+      "bmi",
+      "hba1c",
+      "mean_glucose",
+      "time_below_range",
+      "time_above_range",
+      "glucose_cv",
+      "systolic_bp",
+      "ldl",
+      "activity_hours"
+    ],
+    "feature_importance": {
+      "age": 0.0001,
+      "bmi": 0.0001,
+      "hba1c": 0.0001,
+      "mean_glucose": 0.8078,
+      "time_below_range": 0.1915,
+      "time_above_range": 0.0001,
+      "glucose_cv": 0.0001,
+      "systolic_bp": 0.0001,
+      "ldl": 0.0001,
+      "activity_hours": 0.0001
+    },
+    "targets": [
+      "hypoglycemia_risk",
+      "hyperglycemia_risk",
+      "hospitalization_risk",
+      "cardiovascular_risk",
+      "complication_risk"
+    ]
+  }
+}

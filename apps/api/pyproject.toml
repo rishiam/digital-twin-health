@@ -1,0 +1,9 @@
+[project]
+name = "digitwin-api"
+version = "1.0.0"
+description = "DigiTwin Health FastAPI backend"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
