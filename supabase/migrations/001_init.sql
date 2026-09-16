@@ -402,24 +402,29 @@ RETURNS text AS $$
 $$ LANGUAGE sql STABLE;
 
 -- Users policies
+DROP POLICY IF EXISTS "users_select_self_or_staff" ON users;
 CREATE POLICY "users_select_self_or_staff" ON users
     FOR SELECT USING (
         id::text = auth_user_id() OR auth_user_role() IN ('doctor', 'admin')
     );
 
+DROP POLICY IF EXISTS "users_admin_all" ON users;
 CREATE POLICY "users_admin_all" ON users
     FOR ALL USING (auth_user_role() = 'admin');
 
 -- Patients policies
+DROP POLICY IF EXISTS "patients_select_scoped" ON patients;
 CREATE POLICY "patients_select_scoped" ON patients
     FOR SELECT USING (
         user_id::text = auth_user_id() OR assigned_doctor_id::text = auth_user_id() OR auth_user_role() = 'admin'
     );
 
+DROP POLICY IF EXISTS "patients_write_staff" ON patients;
 CREATE POLICY "patients_write_staff" ON patients
     FOR ALL USING (auth_user_role() IN ('doctor', 'admin'));
 
 -- Patient clinical data policies (generic template based on patient ownership)
+DROP POLICY IF EXISTS "cgm_select_scoped" ON cgm_readings;
 CREATE POLICY "cgm_select_scoped" ON cgm_readings
     FOR SELECT USING (
         EXISTS (
@@ -429,6 +434,7 @@ CREATE POLICY "cgm_select_scoped" ON cgm_readings
         )
     );
 
+DROP POLICY IF EXISTS "cbc_select_scoped" ON cbc_results;
 CREATE POLICY "cbc_select_scoped" ON cbc_results
     FOR SELECT USING (
         EXISTS (
@@ -438,6 +444,7 @@ CREATE POLICY "cbc_select_scoped" ON cbc_results
         )
     );
 
+DROP POLICY IF EXISTS "ecg_select_scoped" ON ecg_results;
 CREATE POLICY "ecg_select_scoped" ON ecg_results
     FOR SELECT USING (
         EXISTS (
@@ -447,6 +454,7 @@ CREATE POLICY "ecg_select_scoped" ON ecg_results
         )
     );
 
+DROP POLICY IF EXISTS "risk_select_scoped" ON risk_scores;
 CREATE POLICY "risk_select_scoped" ON risk_scores
     FOR SELECT USING (
         EXISTS (
@@ -456,6 +464,7 @@ CREATE POLICY "risk_select_scoped" ON risk_scores
         )
     );
 
+DROP POLICY IF EXISTS "predictions_select_scoped" ON glucose_predictions;
 CREATE POLICY "predictions_select_scoped" ON glucose_predictions
     FOR SELECT USING (
         EXISTS (
@@ -465,6 +474,7 @@ CREATE POLICY "predictions_select_scoped" ON glucose_predictions
         )
     );
 
+DROP POLICY IF EXISTS "simulations_select_scoped" ON simulation_results;
 CREATE POLICY "simulations_select_scoped" ON simulation_results
     FOR SELECT USING (
         EXISTS (
@@ -474,6 +484,7 @@ CREATE POLICY "simulations_select_scoped" ON simulation_results
         )
     );
 
+DROP POLICY IF EXISTS "reports_select_scoped" ON reports;
 CREATE POLICY "reports_select_scoped" ON reports
     FOR SELECT USING (
         EXISTS (
@@ -483,6 +494,7 @@ CREATE POLICY "reports_select_scoped" ON reports
         )
     );
 
+DROP POLICY IF EXISTS "model_registry_select_all" ON model_registry;
 CREATE POLICY "model_registry_select_all" ON model_registry
     FOR SELECT USING (true);
 
