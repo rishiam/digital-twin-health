@@ -4,9 +4,14 @@ const nextConfig: NextConfig = {
   output: "standalone",
   typedRoutes: true,
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
-    if (!backendUrl || backendUrl.includes("localhost")) {
+    const raw = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
+    if (!raw) return [];
+    let backendUrl = raw.trim();
+    if (!backendUrl || backendUrl.includes("localhost") || backendUrl === "/") {
       return [];
+    }
+    if (!backendUrl.startsWith("http://") && !backendUrl.startsWith("https://")) {
+      backendUrl = `https://${backendUrl}`;
     }
     const cleanUrl = backendUrl.replace(/\/+$/, "");
     return [

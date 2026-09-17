@@ -5,4 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function getApiUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL;
+  if (!raw) return "http://localhost:8000";
+  let url = raw.trim();
+  if (url.startsWith("/") || url.startsWith("http://") || url.startsWith("https://")) {
+    return url.replace(/\/+$/, "");
+  }
+  return `https://${url}`.replace(/\/+$/, "");
+}
+
+export const API_URL = getApiUrl();
