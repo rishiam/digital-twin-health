@@ -1,11 +1,12 @@
 import type { NextConfig } from "next";
 
+const DEFAULT_BACKEND = "https://digital-twin-health-production.up.railway.app";
+
 const nextConfig: NextConfig = {
   output: "standalone",
   typedRoutes: true,
   async rewrites() {
-    const raw = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
-    if (!raw) return [];
+    const raw = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || DEFAULT_BACKEND;
     let backendUrl = raw.trim();
     if (!backendUrl || backendUrl.includes("localhost") || backendUrl === "/") {
       return [];

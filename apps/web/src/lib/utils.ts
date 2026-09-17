@@ -5,9 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const PRODUCTION_API_URL = "https://digital-twin-health-production.up.railway.app";
+
 function getApiUrl(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL;
-  if (!raw) return "http://localhost:8000";
+  if (!raw) {
+    if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+      return "http://localhost:8000";
+    }
+    return PRODUCTION_API_URL;
+  }
   let url = raw.trim();
   if (url.startsWith("/") || url.startsWith("http://") || url.startsWith("https://")) {
     return url.replace(/\/+$/, "");
