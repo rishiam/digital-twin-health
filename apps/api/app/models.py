@@ -12,13 +12,47 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    TypeDecorator,
+    Uuid,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+import uuid
 
-def uid() -> str:
-    return str(uuid4())
+
+class GUID(TypeDecorator):
+    """Platform-independent GUID/UUID type.
+    Uses native UUID on PostgreSQL, CHAR(32) on SQLite.
+    Accepts both str and uuid.UUID on binding, converting strings to uuid.UUID.
+    Returns uuid.UUID so that PostgreSQL sentinel matching in insertmanyvalues works seamlessly.
+    """
+    impl = Uuid
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, uuid.UUID):
+            return value
+        try:
+            return uuid.UUID(str(value))
+        except (ValueError, TypeError, AttributeError):
+            return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, uuid.UUID):
+            return value
+        try:
+            return uuid.UUID(str(value))
+        except (ValueError, TypeError, AttributeError):
+            return value
+
+
+def uid() -> uuid.UUID:
+    return uuid4()
 
 
 class Base(DeclarativeBase):
@@ -28,7 +62,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(255))
@@ -49,12 +83,12 @@ class User(Base):
 class Patient(Base):
     __tablename__ = "patients"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    user_id: Mapped[Optional[str]] = mapped_column(GUID, ForeignKey("users.id"), nullable=True)
     mrn: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)
     date_of_birth: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     sex: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
-    assigned_doctor_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    assigned_doctor_id: Mapped[Optional[str]] = mapped_column(GUID, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -65,8 +99,8 @@ class Patient(Base):
 class PatientProfile(Base):
     __tablename__ = "patient_profiles"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), unique=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), unique=True)
     age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     weight_kg: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     height_cm: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -84,8 +118,8 @@ class PatientProfile(Base):
 class CgmReading(Base):
     __tablename__ = "cgm_readings"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     glucose_mg_dl: Mapped[float] = mapped_column(Float)
     trend: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
@@ -95,8 +129,8 @@ class CgmReading(Base):
 class Medication(Base):
     __tablename__ = "medications"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     name: Mapped[str] = mapped_column(String(128))
     dose: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     frequency: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
@@ -106,8 +140,8 @@ class Medication(Base):
 class InsulinRecord(Base):
     __tablename__ = "insulin_records"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     insulin_type: Mapped[str] = mapped_column(String(64))
     units: Mapped[float] = mapped_column(Float)
@@ -116,8 +150,8 @@ class InsulinRecord(Base):
 class MealRecord(Base):
     __tablename__ = "meal_records"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     carbs_g: Mapped[float] = mapped_column(Float)
     protein_g: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -128,8 +162,8 @@ class MealRecord(Base):
 class ActivityRecord(Base):
     __tablename__ = "activity_records"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     activity_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     duration_min: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -140,8 +174,8 @@ class ActivityRecord(Base):
 class CbcResult(Base):
     __tablename__ = "cbc_results"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     hemoglobin: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     hematocrit: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -162,8 +196,8 @@ class CbcResult(Base):
 class EcgResult(Base):
     __tablename__ = "ecg_results"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     heart_rate: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     pr_interval_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -181,8 +215,8 @@ class EcgResult(Base):
 class RiskScore(Base):
     __tablename__ = "risk_scores"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     hypoglycemia_risk: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     hyperglycemia_risk: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -198,8 +232,8 @@ class RiskScore(Base):
 class GlucosePrediction(Base):
     __tablename__ = "glucose_predictions"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     predicted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     horizon_minutes: Mapped[int] = mapped_column(Integer)
     predicted_mg_dl: Mapped[float] = mapped_column(Float)
@@ -213,8 +247,8 @@ class GlucosePrediction(Base):
 class SimulationResult(Base):
     __tablename__ = "simulation_results"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     scenario: Mapped[dict] = mapped_column(JSON)
     baseline_curve: Mapped[list] = mapped_column(JSON)
@@ -225,8 +259,8 @@ class SimulationResult(Base):
 class Recommendation(Base):
     __tablename__ = "recommendations"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     category: Mapped[str] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(255))
@@ -238,9 +272,9 @@ class Recommendation(Base):
 class Report(Base):
     __tablename__ = "reports"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
-    created_by: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
+    created_by: Mapped[Optional[str]] = mapped_column(GUID, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     title: Mapped[str] = mapped_column(String(255))
     report_type: Mapped[str] = mapped_column(String(64))
@@ -251,8 +285,8 @@ class Report(Base):
 class Alert(Base):
     __tablename__ = "alerts"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    patient_id: Mapped[str] = mapped_column(String(36), ForeignKey("patients.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    patient_id: Mapped[str] = mapped_column(GUID, ForeignKey("patients.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     severity: Mapped[str] = mapped_column(String(16))
     title: Mapped[str] = mapped_column(String(255))
@@ -263,8 +297,8 @@ class Alert(Base):
 class Notification(Base):
     __tablename__ = "notifications"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    user_id: Mapped[str] = mapped_column(GUID, ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     title: Mapped[str] = mapped_column(String(255))
     body: Mapped[str] = mapped_column(Text)
@@ -274,8 +308,8 @@ class Notification(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
-    actor_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
+    actor_id: Mapped[Optional[str]] = mapped_column(GUID, ForeignKey("users.id"), nullable=True)
     action: Mapped[str] = mapped_column(String(64))
     resource: Mapped[str] = mapped_column(String(64))
     resource_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
@@ -287,7 +321,7 @@ class AuditLog(Base):
 class ModelRegistry(Base):
     __tablename__ = "model_registry"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=uid)
     name: Mapped[str] = mapped_column(String(128))
     version: Mapped[str] = mapped_column(String(32))
     task: Mapped[str] = mapped_column(String(64))

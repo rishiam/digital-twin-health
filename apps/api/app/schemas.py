@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Any, Optional
+from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_serializer
 
 
 class TokenResponse(BaseModel):
@@ -10,7 +11,11 @@ class TokenResponse(BaseModel):
     role: str
     full_name: str
     email: EmailStr
-    patient_id: Optional[str] = None
+    patient_id: Optional[str | UUID] = None
+
+    @field_serializer("patient_id", when_used="json-unless-none")
+    def serialize_patient_id(self, v: str | UUID | None) -> str | None:
+        return str(v) if v is not None else None
 
 
 class LoginRequest(BaseModel):
@@ -26,7 +31,7 @@ class RegisterRequest(BaseModel):
 
 
 class UserOut(BaseModel):
-    id: str
+    id: str | UUID
     email: EmailStr
     full_name: str
     role: str
@@ -34,6 +39,10 @@ class UserOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("id", when_used="json-unless-none")
+    def serialize_id(self, v: str | UUID) -> str:
+        return str(v)
 
 
 class Pagination(BaseModel):

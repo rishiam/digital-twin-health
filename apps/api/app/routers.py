@@ -60,7 +60,7 @@ def audit(db: Session, user: User | None, action: str, resource: str, resource_i
             actor_id=user.id if user else None,
             action=action,
             resource=resource,
-            resource_id=resource_id,
+            resource_id=str(resource_id) if resource_id is not None else None,
             ip_address=request.client.host if request and request.client else None,
         )
     )
@@ -83,7 +83,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db), request: Requ
     db.flush()
     patient_id = None
     if body.role == "patient":
-        patient = Patient(user_id=user.id, mrn=f"DT-{user.id[:8].upper()}")
+        patient = Patient(user_id=user.id, mrn=f"DT-{str(user.id)[:8].upper()}")
         db.add(patient)
         db.flush()
         db.add(PatientProfile(patient_id=patient.id, diabetes_type="type2", age=40, weight_kg=70, hba1c=6.8))
